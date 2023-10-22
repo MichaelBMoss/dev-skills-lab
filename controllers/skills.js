@@ -1,14 +1,14 @@
-// controllers/todos.js
+// controllers/skills.js
 
   // Convention is to name the model in uppercase and singular
-  const Todo = require('../models/todo');
+  const Skill = require('../models/skill');
 
 module.exports = {
     index
   };
 
 function index(req, res) {
-    res.render('todos/index', {
-      todos: Todo.getAll()
+    res.render('skills/index', {
+      skills: Skill.getAll()
     });
   }
