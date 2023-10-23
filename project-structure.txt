@@ -1,0 +1,414 @@
+1: .
+2: bin
+3: bin/www
+  4: #!/usr/bin/env node
+  5: 
+  6: /**
+  7:  * Module dependencies.
+  8:  */
+  9: 
+  10: var app = require('../server');
+  11: var debug = require('debug')('express-todos:server');
+  12: var http = require('http');
+  13: 
+  14: /**
+  15:  * Get port from environment and store in Express.
+  16:  */
+  17: 
+  18: var port = normalizePort(process.env.PORT || '3000');
+  19: app.set('port', port);
+  20: 
+  21: /**
+  22:  * Create HTTP server.
+  23:  */
+  24: 
+  25: var server = http.createServer(app);
+  26: 
+  27: /**
+  28:  * Listen on provided port, on all network interfaces.
+  29:  */
+  30: 
+  31: server.listen(port);
+  32: server.on('error', onError);
+  33: server.on('listening', onListening);
+  34: 
+  35: /**
+  36:  * Normalize a port into a number, string, or false.
+  37:  */
+  38: 
+  39: function normalizePort(val) {
+  40:   var port = parseInt(val, 10);
+  41: 
+  42:   if (isNaN(port)) {
+  43:     // named pipe
+  44:     return val;
+  45:   }
+  46: 
+  47:   if (port >= 0) {
+  48:     // port number
+  49:     return port;
+  50:   }
+  51: 
+  52:   return false;
+  53: }
+  54: 
+  55: /**
+  56:  * Event listener for HTTP server "error" event.
+  57:  */
+  58: 
+  59: function onError(error) {
+  60:   if (error.syscall !== 'listen') {
+  61:     throw error;
+  62:   }
+  63: 
+  64:   var bind = typeof port === 'string'
+  65:     ? 'Pipe ' + port
+  66:     : 'Port ' + port;
+  67: 
+  68:   // handle specific listen errors with friendly messages
+  69:   switch (error.code) {
+  70:     case 'EACCES':
+  71:       console.error(bind + ' requires elevated privileges');
+  72:       process.exit(1);
+  73:       break;
+  74:     case 'EADDRINUSE':
+  75:       console.error(bind + ' is already in use');
+  76:       process.exit(1);
+  77:       break;
+  78:     default:
+  79:       throw error;
+  80:   }
+  81: }
+  82: 
+  83: /**
+  84:  * Event listener for HTTP server "listening" event.
+  85:  */
+  86: 
+  87: function onListening() {
+  88:   var addr = server.address();
+  89:   var bind = typeof addr === 'string'
+  90:     ? 'pipe ' + addr
+  91:     : 'port ' + addr.port;
+  92:   debug('Listening on ' + bind);
+  93: }
+  94: 
+95: controllers
+96: controllers/todos.js
+  97: const Todo = require('../models/todo');
+  98: 
+  99: module.exports = {
+  100:   index,
+  101:   show,
+  102:   new: newTodo,
+  103:   create,
+  104:   delete: deleteTodo,
+  105:   edit,
+  106:   update
+  107: };
+  108: 
+  109: function update(req, res) {
+  110:   req.body.done = !!req.body.done;
+  111:   Todo.update(req.params.id, req.body);
+  112:   res.redirect(`/todos/${req.params.id}`);
+  113: }
+  114: 
+  115: function edit(req, res) {
+  116:   const todo = Todo.getOne(req.params.id);
+  117:   res.render('todos/edit', {
+  118:     title: 'Edit To-Do',
+  119:     todo
+  120:   });
+  121: }
+  122: 
+  123: function deleteTodo(req, res) {
+  124:   Todo.deleteOne(req.params.id);
+  125:   res.redirect('/todos');
+  126: }
+  127: 
+  128: function create(req, res) {
+  129:   console.log(req.body);
+  130:   // Models are responible for CRUD'ing the data
+  131:   Todo.create(req.body);
+  132:   // Always do a redirect when data has been changed
+  133:   res.redirect('/todos');
+  134: }
+  135: 
+  136: function newTodo(req, res) {
+  137:   res.render('todos/new', { title: 'New Todo' });
+  138: }
+  139: 
+  140: function show(req, res) {
+  141:   res.render('todos/show', {
+  142:     todo: Todo.getOne(req.params.id),
+  143:     title: 'To-Do Details'
+  144:   });
+  145: }
+  146: 
+  147: function index(req, res) {
+  148:   res.render('todos/index', {
+  149:     todos: Todo.getAll(),
+  150:     title: 'All To-Dos'
+  151:   });
+  152: }
+153: models
+154: models/todo.js
+  155: const todos = [
+  156:   {id: 125223, todo: 'Feed Dogs', done: true},
+  157:   {id: 127904, todo: 'Learn Express', done: false},
+  158:   {id: 139608, todo: 'Buy Milk', done: false}
+  159: ];
+  160: 
+  161: module.exports = {
+  162:   getAll,
+  163:   getOne,
+  164:   create,
+  165:   deleteOne,
+  166:   update
+  167: };
+  168: 
+  169: function update(id, updatedTodo) {
+  170:   id = parseInt(id);
+  171:   const todo = todos.find(todo => todo.id === id);
+  172:   Object.assign(todo, updatedTodo);
+  173: }
+  174: 
+  175: function deleteOne(id) {
+  176:   id = parseInt(id);
+  177:   // Find the index for the todo
+  178:   const idx = todos.findIndex(todo => todo.id === id);
+  179:   todos.splice(idx, 1);
+  180: }
+  181: 
+  182: function create(todo) {
+  183:   // Add the id
+  184:   todo.id = Date.now() % 1000000;
+  185:   todo.done = false;
+  186:   todos.push(todo);
+  187: }
+  188: 
+  189: function getOne(id) {
+  190:   id = parseInt(id);
+  191:   return todos.find(todo => todo.id === id);
+  192: }
+  193: 
+  194: function getAll() {
+  195:   return todos;
+  196: }
+197: public
+198: public/stylesheets
+199: public/stylesheets/style.css
+  200: body {
+  201:   padding: 50px;
+  202:   font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+  203: }
+  204: 
+  205: a {
+  206:   color: #00B7FF;
+  207: }
+  208: 
+  209: .delete-form {
+  210:   display: inline-block;
+  211:   margin-right: 10px;
+  212: }
+  213: 	
+  214: .delete-form button {
+  215:   color: red;
+  216: }
+  217: 	
+  218: li {
+  219:   list-style: none;
+  220: }
+  221: 
+222: routes
+223: routes/index.js
+  224: var express = require('express');
+  225: var router = express.Router();
+  226: 
+  227: /* GET home page. */
+  228: router.get('/', function(req, res, next) {
+  229:   res.render('index', { title: 'Home Page' });
+  230: });
+  231: 
+  232: module.exports = router;
+  233: 
+234: routes/todos.js
+  235: var express = require('express');
+  236: var router = express.Router();
+  237: var todosCtrl = require('../controllers/todos');
+  238: 
+  239: // All actual paths start with "/todos"
+  240: 
+  241: // GET /todos
+  242: router.get('/', todosCtrl.index);
+  243: // GET /todos/new <- Define BEFORE show route
+  244: router.get('/new', todosCtrl.new);
+  245: // GET /todos/:id
+  246: router.get('/:id', todosCtrl.show);
+  247: // GET /todos/:id/edit
+  248: router.get('/:id/edit', todosCtrl.edit);
+  249: // POST /todos
+  250: router.post('/', todosCtrl.create);
+  251: // DELETE /todos/:id
+  252: router.delete('/:id', todosCtrl.delete);
+  253: // PUT /todos/:id
+  254: router.put('/:id', todosCtrl.update);
+  255: 
+  256: 
+  257: module.exports = router;
+  258: 
+259: server.js
+  260: var createError = require('http-errors');
+  261: var express = require('express');
+  262: var path = require('path');
+  263: var cookieParser = require('cookie-parser');
+  264: var logger = require('morgan');
+  265: var methodOverride = require('method-override');
+  266: 
+  267: var indexRouter = require('./routes/index');
+  268: var todosRouter = require('./routes/todos');
+  269: 
+  270: var app = express();
+  271: 
+  272: // view engine setup
+  273: app.set('views', path.join(__dirname, 'views'));
+  274: app.set('view engine', 'ejs');
+  275: 
+  276: // Mount middleware into the middleware/request pipeline
+  277: // app.use([starts with path], <middleware fn> [, <middleware fn>])
+  278: 
+  279: app.use(function(req, res, next) {
+  280:   console.log('Hello SEI!');
+  281:   // Add a time property to the res.locals object
+  282:   // The time property will then be accessible within templates
+  283:   res.locals.time = new Date().toLocaleTimeString();
+  284:   next();
+  285: });
+  286: 
+  287: // Log in the terminal the HTTP request info
+  288: app.use(logger('dev'));
+  289: // Processes data sent in the body of the request, if it's json
+  290: app.use(express.json());
+  291: // Processes data sent in 'form' body of the request.
+  292: // It will create a property on req.body for each <input>, <select> and/or <textarea>
+  293: // in the <form>
+  294: app.use(express.urlencoded({ extended: false }));
+  295: // Add a cookies property for each cookie sent in the request
+  296: app.use(cookieParser());
+  297: // If the request is for a static asset, returns the file
+  298: app.use(express.static(path.join(__dirname, 'public')));
+  299: 
+  300: app.use(methodOverride('_method'));
+  301: 
+  302: 
+  303: // The first arg is the "starts with" path
+  304: // The paths within the route modules are appended
+  305: // to the starts with paths 
+  306: app.use('/', indexRouter);
+  307: app.use('/todos', todosRouter);
+  308: 
+  309: // catch 404 and forward to error handler
+  310: app.use(function(req, res, next) {
+  311:   next(createError(404));
+  312: });
+  313: 
+  314: // error handler
+  315: app.use(function(err, req, res, next) {
+  316:   // set locals, only providing error in development
+  317:   res.locals.message = err.message;
+  318:   res.locals.error = req.app.get('env') === 'development' ? err : {};
+  319: 
+  320:   // render the error page
+  321:   res.status(err.status || 500);
+  322:   res.render('error');
+  323: });
+  324: 
+  325: module.exports = app;
+  326: 
+327: views
+328: views/error.ejs
+  329: <h1><%= message %></h1>
+  330: <h2><%= error.status %></h2>
+  331: <pre><%= error.stack %></pre>
+  332: 
+333: views/index.ejs
+  334: <%- include('./partials/header') %>
+  335: <%- include('./partials/footer') %>
+  336: 
+337: views/partials
+338: views/partials/footer.ejs
+  339:   <footer></footer>
+  340: </body>
+  341: </html>
+342: views/partials/header.ejs
+  343: <!DOCTYPE html>
+  344: <html lang="en">
+  345: <head>
+  346:   <meta charset="UTF-8">
+  347:   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  348:   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  349:   <title>Express To-Do</title>
+  350:   <link rel='stylesheet' href='/stylesheets/style.css' />
+  351: </head>
+  352: <body>
+  353:   <a href="/">Home</a>
+  354:    | 
+  355:   <a href="/todos">All To-Dos</a>
+  356:   <h1><%= title %></h1>
+357: views/todos
+358: views/todos/edit.ejs
+  359: <%- include('../partials/header') %>
+  360: 
+  361: <form action="/todos/<%= todo.id %>?_method=PUT" method="POST">
+  362:   <input type="text" name="todo" value="<%= todo.todo %>"><br>
+  363:   <label>
+  364:     <input type="checkbox" name="done" <%= todo.done ? 'checked' : '' %>>
+  365:     Completed
+  366:   </label><br>
+  367:   <button type="submit">Update To-Do</button>
+  368: </form>
+  369: 
+  370: <%- include('../partials/footer') %>
+371: views/todos/index.ejs
+  372: <%- include('../partials/header') %>
+  373: 
+  374: <h3>To-Dos as of <%= time %></h3>
+  375: 
+  376: <ul>
+  377:   <% todos.forEach(function(t) { %>
+  378:     <li>
+  379:       <form
+  380:         action="/todos/<%= t.id %>?_method=DELETE"
+  381:         method="POST"
+  382:         class="delete-form"
+  383:       >
+  384:         <button type="submit">X</button>
+  385:       </form>
+  386:       <a href="/todos/<%= t.id %>"><%= t.todo %></a>
+  387:       - 
+  388:       <%= t.done ? 'done' : 'not done' %>
+  389:     </li>
+  390:   <% }); %>
+  391: </ul>
+  392: <a href="/todos/new">Add To-Do</a>
+  393: 
+  394:   
+  395: <%- include('../partials/footer') %>
+  396: 
+397: views/todos/new.ejs
+  398: <%- include('../partials/header') %>
+  399: 
+  400: <form action="/todos" method="POST">
+  401:   <input type="text" name="todo">
+  402:   <button type="submit">Save To-Do</button>
+  403: </form>
+  404: 
+  405: <%- include('../partials/footer') %>
+406: views/todos/show.ejs
+  407: <%- include('../partials/header') %>
+  408: 
+  409: <h3><%= todo.todo %></h3>
+  410: <h3>Complete: <%= todo.done ? 'Yes' : 'No' %></h3>
+  411: <a href="/todos/<%= todo.id %>/edit">Edit To-Do</a>
+  412: 
+  413: <%- include('../partials/footer') %>
+  414: 
