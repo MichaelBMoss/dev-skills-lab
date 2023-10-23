@@ -6,7 +6,7 @@ var logger = require('morgan');
 var methodOverride = require('method-override');
 
 var indexRouter = require('./routes/index');
-var todosRouter = require('./routes/todos');
+var skillsRouter = require('./routes/skills');
 
 var app = express();
 
@@ -45,7 +45,7 @@ app.use(methodOverride('_method'));
 // The paths within the route modules are appended
 // to the starts with paths 
 app.use('/', indexRouter);
-app.use('/todos', todosRouter);
+app.use('/skills', skillsRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
